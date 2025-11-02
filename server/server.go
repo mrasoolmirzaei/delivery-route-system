@@ -13,10 +13,16 @@ type Server struct {
 	log                  logrus.FieldLogger
 	router               *http.ServeMux
 	stopChan             chan struct{}
+	routeService         RouteService
 }
 
 type Config struct {
 	Logger               logrus.FieldLogger
+	RouteService         RouteService
+}
+
+type RouteService interface {
+	GetRoutes(ctx context.Context, request *GetRoutesRequest) (*GetRoutesResponse, error)
 }
 
 func NewServer(config Config) (*Server, error) {
@@ -27,6 +33,7 @@ func NewServer(config Config) (*Server, error) {
 		log:                  config.Logger,
 		router:               http.NewServeMux(),
 		stopChan:             make(chan struct{}),
+		routeService:         config.RouteService,
 	}
 
 	s.SetupRoutes()
@@ -35,6 +42,7 @@ func NewServer(config Config) (*Server, error) {
 
 func (s *Server) SetupRoutes() {
 	s.router.HandleFunc("GET /ping", s.ping())
+	s.router.HandleFunc("GET /routes", s.getRoutes())
 }
 
 func (s *Server) Serve(listen string) error {

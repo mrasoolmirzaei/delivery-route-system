@@ -7,7 +7,9 @@ import (
 	"syscall"
 	"time"
 	"github.com/mrasoolmirzaei/delivery-route-system/server"
-
+	"github.com/mrasoolmirzaei/delivery-route-system/service"
+	"github.com/mrasoolmirzaei/delivery-route-system/pkg/osrmclient"
+	"github.com/mrasoolmirzaei/delivery-route-system/pkg/httpclient"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -18,10 +20,13 @@ const (
 
 func main() {
 	logger := initLogger()
-
+	routeService := service.NewRouteService(osrmclient.NewOSRMClient(&httpclient.Config{
+		Log: logger.WithField("context", "osrmclient"),
+	}))
 	logger.Info("Creating server...")
 	srv, err := server.NewServer(server.Config{
 		Logger:               logger.WithField("context", "server"),
+		RouteService:         routeService,
 	})
 	if err != nil {
 		logger.WithError(err).Fatal("failed to create server")

@@ -6,12 +6,12 @@ func (l Location) String() string {
 	return string(l)
 }
 
-type GetAllRoutesRequest struct {
+type GetRoutesRequest struct {
 	Source Location
 	Destinations []Location
 }
 
-type GetAllRoutesResponse struct {
+type GetRoutesResponse struct {
 	Source Location	`json:"source"`
 	Routes []*Route `json:"routes"`
 }
