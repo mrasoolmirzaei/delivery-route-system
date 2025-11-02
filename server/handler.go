@@ -7,27 +7,34 @@ import (
 
 func (s *Server) ping() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		writeJSON(w, http.StatusOK, "pong")
 	}
 }
 
 func (s *Server) getRoutes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		request := &GetRoutesRequest{}
-		params := r.URL.Query()
-		source := params.Get("source")
-		destinations := params.Get("destinations")
-		request.Source = Location(source)
-		request.Destinations = make([]Location, 0)
-		for _, destination := range destinations {
-			request.Destinations = append(request.Destinations, Location(destination))
+		req, validationErr := validateGetRoutesRequest(r)
+		if validationErr != nil {
+			s.log.WithError(validationErr).Error("failed to validate get routes request")
+			writeJSON(w, http.StatusBadRequest, validationErr)
+			return
 		}
-		response, err := s.routeService.GetRoutes(r.Context(), request)
+
+		response, err := s.routeService.GetRoutes(r.Context(), req)
 		if err != nil {
+			s.log.WithError(err).Error("failed to get routes")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		json.NewEncoder(w).Encode(response)
+		writeJSON(w, http.StatusOK, response)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	err := json.NewEncoder(w).Encode(v)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

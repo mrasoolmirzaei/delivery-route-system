@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/mrasoolmirzaei/delivery-route-system/pkg/httpclient"
 	"github.com/mrasoolmirzaei/delivery-route-system/service"
+	"github.com/sirupsen/logrus"
 )
 
 type DrivingInfo struct {
@@ -20,13 +21,18 @@ type Route struct {
 
 type OSRMClient struct {
 	client *httpclient.HTTPClient
+	log    logrus.FieldLogger
 }
 
 func NewOSRMClient(cfg *httpclient.Config) *OSRMClient {
-	return &OSRMClient{client: httpclient.NewHTTPClient(cfg)}
+	return &OSRMClient{
+		client: httpclient.NewHTTPClient(cfg),
+		log:    cfg.Log,
+	}
 }
 
 func (c *OSRMClient) FindNearestRoute(ctx context.Context, source, destination string) (*service.Route, error) {
+	c.log.Infof("finding nearest route from %s to %s", source, destination)
 	url := findNearestRouteURL(source, destination)
 	drivingInfo := &DrivingInfo{}
 	err := c.client.Get(ctx, url, drivingInfo)
@@ -52,5 +58,5 @@ func (c *OSRMClient) FindNearestRoute(ctx context.Context, source, destination s
 }
 
 func findNearestRouteURL(source, destination string) string {
-	return fmt.Sprintf("http://router.project-osrm.org/route/v1/driving/%s;%s", source, destination)
+	return fmt.Sprintf("http://router.project-osrm.org/route/v1/driving/%s;%s?overview=false", source, destination)
 }
