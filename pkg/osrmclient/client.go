@@ -29,7 +29,7 @@ func NewOSRMClient(cfg *httpclient.Config) *OSRMClient {
 	}
 }
 
-func (c *OSRMClient) FindNearestRoutes(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error) {
+func (c *OSRMClient) FindFastestRoutes(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error) {
 	routes := make([]*service.Route, 0, len(destinations))
 	sourceStr := source.String()
 	destinationsStr := make([]string, 0, len(destinations))

@@ -26,8 +26,8 @@ func main() {
 	}))
 	logger.Info("Creating server...")
 	srv, err := server.NewServer(server.Config{
-		Logger:              logger.WithField("context", "server"),
-		ServiceRouteService: routeService,
+		Logger:       logger.WithField("context", "server"),
+		RouteService: routeService,
 	})
 	if err != nil {
 		logger.WithError(err).Fatal("failed to create server")

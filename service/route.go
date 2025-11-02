@@ -5,20 +5,24 @@ import (
 	"sort"
 )
 
-type RouteService struct {
+type RouteService interface {
+	GetFastestRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error)
+}
+
+type routeServiceImpl struct {
 	routeFinder routeFinder
 }
 
 type routeFinder interface {
-	FindNearestRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error)
+	FindFastestRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error)
 }
 
-func NewRouteService(routeFinder routeFinder) *RouteService {
-	return &RouteService{routeFinder: routeFinder}
+func NewRouteService(routeFinder routeFinder) RouteService {
+	return &routeServiceImpl{routeFinder: routeFinder}
 }
 
-func (s *RouteService) GetRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error) {
-	routes, err := s.routeFinder.FindNearestRoutes(ctx, source, destinations)
+func (s *routeServiceImpl) GetFastestRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error) {
+	routes, err := s.routeFinder.FindFastestRoutes(ctx, source, destinations)
 	if err != nil {
 		return nil, err
 	}

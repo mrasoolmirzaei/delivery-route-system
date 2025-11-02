@@ -22,22 +22,19 @@ func (s *Server) getRoutes() http.HandlerFunc {
 			return
 		}
 
-		// Convert server.Location to service.Location
 		source := service.Location(req.Source)
 		destinations := make([]service.Location, len(req.Destinations))
 		for i, dst := range req.Destinations {
 			destinations[i] = service.Location(dst)
 		}
 
-		// Call service with domain types
-		serviceRoutes, err := s.serviceRouteService.GetRoutes(r.Context(), source, destinations)
+		serviceRoutes, err := s.routeService.GetFastestRoutes(r.Context(), source, destinations)
 		if err != nil {
 			s.log.WithError(err).Error("failed to get routes")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Convert service.Route to server.Route
 		serverRoutes := make([]*Route, len(serviceRoutes))
 		for i, route := range serviceRoutes {
 			serverRoutes[i] = &Route{

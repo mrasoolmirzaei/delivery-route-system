@@ -11,19 +11,15 @@ import (
 )
 
 type Server struct {
-	log                 logrus.FieldLogger
-	router              *http.ServeMux
-	stopChan            chan struct{}
-	serviceRouteService ServiceRouteService
+	log          logrus.FieldLogger
+	router       *http.ServeMux
+	stopChan     chan struct{}
+	routeService service.RouteService
 }
 
 type Config struct {
-	Logger              logrus.FieldLogger
-	ServiceRouteService ServiceRouteService
-}
-
-type ServiceRouteService interface {
-	GetRoutes(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error)
+	Logger       logrus.FieldLogger
+	RouteService service.RouteService
 }
 
 func NewServer(config Config) (*Server, error) {
@@ -31,10 +27,10 @@ func NewServer(config Config) (*Server, error) {
 		return nil, errors.New("logger must be specified and cannot be nil")
 	}
 	s := &Server{
-		log:                 config.Logger,
-		router:              http.NewServeMux(),
-		stopChan:            make(chan struct{}),
-		serviceRouteService: config.ServiceRouteService,
+		log:          config.Logger,
+		router:       http.NewServeMux(),
+		stopChan:     make(chan struct{}),
+		routeService: config.RouteService,
 	}
 
 	s.SetupRoutes()
