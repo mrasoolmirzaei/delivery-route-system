@@ -67,7 +67,7 @@ func (c *OSRMClient) FindFastestRoutes(ctx context.Context, source service.Locat
 
 func findNearestRoutesURL(source string, destinations []string) string {
 	destinationsStr := strings.Join(destinations, ";")
-	return fmt.Sprintf("http://router.project-osrm.org/table/v1/driving/%s;%s?overview=false&sources=0&annotations=duration,distance", source, destinationsStr)
+	return fmt.Sprintf("http://router.project-osrm.org/table/v1/driving/%s;%s?sources=0&annotations=duration,distance", source, destinationsStr)
 }
 
 func isResponseUnexpected(tableResponse *TableResponse, totalDestinations int) bool {
