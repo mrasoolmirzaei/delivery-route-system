@@ -2,6 +2,10 @@ package server
 
 type Location string
 
+func (l Location) String() string {
+	return string(l)
+}
+
 type GetAllRoutesRequest struct {
 	Source Location
 	Destinations []Location
@@ -9,7 +13,7 @@ type GetAllRoutesRequest struct {
 
 type GetAllRoutesResponse struct {
 	Source Location	`json:"source"`
-	Routes []Route `json:"routes"`
+	Routes []*Route `json:"routes"`
 }
 
 type Route struct {
