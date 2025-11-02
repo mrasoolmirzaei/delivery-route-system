@@ -43,9 +43,12 @@ func (s *Server) SetupRoutes() {
 }
 
 func (s *Server) Serve(listen string) error {
+	handler := s.recoveryMiddleware(s.router)
+	handler = s.loggingMiddleware(handler)
+	
 	hs := http.Server{
 		Addr:    listen,
-		Handler: s.router,
+		Handler: handler,
 	}
 
 	go func() {
