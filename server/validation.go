@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/mrasoolmirzaei/delivery-route-system/service"
 )
 
 const (
@@ -37,7 +39,9 @@ func validateGetRoutesRequest(r *http.Request) (*GetRoutesRequest, ValidationErr
 
 	if source != "" {
 		request.Source = Location(source)
-		if err := request.Source.Validate(); err != nil {
+		// Convert to service.Location for domain validation
+		serviceLocation := service.Location(source)
+		if err := serviceLocation.Validate(); err != nil {
 			validationErr["src"] = err.Error()
 		}
 	}
@@ -55,7 +59,9 @@ func validateGetRoutesRequest(r *http.Request) (*GetRoutesRequest, ValidationErr
 	request.Destinations = make([]Location, len(destinations))
 	for i, dst := range destinations {
 		request.Destinations[i] = Location(dst)
-		if err := request.Destinations[i].Validate(); err != nil {
+		// Convert to service.Location for domain validation
+		serviceLocation := service.Location(dst)
+		if err := serviceLocation.Validate(); err != nil {
 			dstKey := fmt.Sprintf("dst[%d]", i+1)
 			validationErr[dstKey] = fmt.Sprintf("destination number %d is invalid: %s", i+1, err.Error())
 		}

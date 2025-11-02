@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/mrasoolmirzaei/delivery-route-system/service"
 )
 
 func (s *Server) ping() http.HandlerFunc {
@@ -20,11 +22,34 @@ func (s *Server) getRoutes() http.HandlerFunc {
 			return
 		}
 
-		response, err := s.routeService.GetRoutes(r.Context(), req)
+		// Convert server.Location to service.Location
+		source := service.Location(req.Source)
+		destinations := make([]service.Location, len(req.Destinations))
+		for i, dst := range req.Destinations {
+			destinations[i] = service.Location(dst)
+		}
+
+		// Call service with domain types
+		serviceRoutes, err := s.serviceRouteService.GetRoutes(r.Context(), source, destinations)
 		if err != nil {
 			s.log.WithError(err).Error("failed to get routes")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		// Convert service.Route to server.Route
+		serverRoutes := make([]*Route, len(serviceRoutes))
+		for i, route := range serviceRoutes {
+			serverRoutes[i] = &Route{
+				Destination: Location(route.Destination),
+				Distance:    route.Distance,
+				Duration:    route.Duration,
+			}
+		}
+
+		response := &GetRoutesResponse{
+			Source: req.Source,
+			Routes: serverRoutes,
 		}
 		writeJSON(w, http.StatusOK, response)
 	}

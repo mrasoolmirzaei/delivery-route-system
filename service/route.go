@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"sort"
-
-	"github.com/mrasoolmirzaei/delivery-route-system/server"
 )
 
 type RouteService struct {
@@ -12,25 +10,17 @@ type RouteService struct {
 }
 
 type routeFinder interface {
-	FindNearestRoute(ctx context.Context, source, destination string) (*Route, error)
+	FindNearestRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error)
 }
 
 func NewRouteService(routeFinder routeFinder) *RouteService {
 	return &RouteService{routeFinder: routeFinder}
 }
 
-func (s *RouteService) GetRoutes(ctx context.Context, request *server.GetRoutesRequest) (*server.GetRoutesResponse, error) {
-	routes := make([]*server.Route, 0)
-	for _, destination := range request.Destinations {
-		route, err := s.routeFinder.FindNearestRoute(ctx, request.Source.String(), destination.String())
-		if err != nil {
-			return nil, err
-		}
-		routes = append(routes, &server.Route{
-			Destination: destination,
-			Distance:    route.Distance,
-			Duration:    route.Duration,
-		})
+func (s *RouteService) GetRoutes(ctx context.Context, source Location, destinations []Location) ([]*Route, error) {
+	routes, err := s.routeFinder.FindNearestRoutes(ctx, source, destinations)
+	if err != nil {
+		return nil, err
 	}
 
 	sort.Slice(routes, func(i, j int) bool {
@@ -40,8 +30,5 @@ func (s *RouteService) GetRoutes(ctx context.Context, request *server.GetRoutesR
 		return routes[i].Duration < routes[j].Duration
 	})
 
-	return &server.GetRoutesResponse{
-		Source: request.Source,
-		Routes: routes,
-	}, nil
+	return routes, nil
 }

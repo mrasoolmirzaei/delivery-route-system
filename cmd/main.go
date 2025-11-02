@@ -6,16 +6,17 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/mrasoolmirzaei/delivery-route-system/pkg/httpclient"
+	"github.com/mrasoolmirzaei/delivery-route-system/pkg/osrmclient"
 	"github.com/mrasoolmirzaei/delivery-route-system/server"
 	"github.com/mrasoolmirzaei/delivery-route-system/service"
-	"github.com/mrasoolmirzaei/delivery-route-system/pkg/osrmclient"
-	"github.com/mrasoolmirzaei/delivery-route-system/pkg/httpclient"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
 const (
-	serverPort     = ":8000"
+	serverPort = ":8000"
 )
 
 func main() {
@@ -25,8 +26,8 @@ func main() {
 	}))
 	logger.Info("Creating server...")
 	srv, err := server.NewServer(server.Config{
-		Logger:               logger.WithField("context", "server"),
-		RouteService:         routeService,
+		Logger:              logger.WithField("context", "server"),
+		ServiceRouteService: routeService,
 	})
 	if err != nil {
 		logger.WithError(err).Fatal("failed to create server")

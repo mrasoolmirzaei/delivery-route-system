@@ -6,23 +6,24 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mrasoolmirzaei/delivery-route-system/service"
 	"github.com/sirupsen/logrus"
 )
 
 type Server struct {
-	log                  logrus.FieldLogger
-	router               *http.ServeMux
-	stopChan             chan struct{}
-	routeService         RouteService
+	log                 logrus.FieldLogger
+	router              *http.ServeMux
+	stopChan            chan struct{}
+	serviceRouteService ServiceRouteService
 }
 
 type Config struct {
-	Logger               logrus.FieldLogger
-	RouteService         RouteService
+	Logger              logrus.FieldLogger
+	ServiceRouteService ServiceRouteService
 }
 
-type RouteService interface {
-	GetRoutes(ctx context.Context, request *GetRoutesRequest) (*GetRoutesResponse, error)
+type ServiceRouteService interface {
+	GetRoutes(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error)
 }
 
 func NewServer(config Config) (*Server, error) {
@@ -30,10 +31,10 @@ func NewServer(config Config) (*Server, error) {
 		return nil, errors.New("logger must be specified and cannot be nil")
 	}
 	s := &Server{
-		log:                  config.Logger,
-		router:               http.NewServeMux(),
-		stopChan:             make(chan struct{}),
-		routeService:         config.RouteService,
+		log:                 config.Logger,
+		router:              http.NewServeMux(),
+		stopChan:            make(chan struct{}),
+		serviceRouteService: config.ServiceRouteService,
 	}
 
 	s.SetupRoutes()
