@@ -43,15 +43,40 @@ type TableResponse struct {
 	Distances [][]float64 `json:"distances"`
 }
 
+const (
+	defaultOSRMBaseURL = "http://router.project-osrm.org"
+)
+
 type OSRMClient struct {
-	client *httpclient.HTTPClient
-	log    logrus.FieldLogger
+	client  *httpclient.HTTPClient
+	log     logrus.FieldLogger
+	baseURL string
 }
 
-func NewOSRMClient(cfg *httpclient.Config) *OSRMClient {
+type Config struct {
+	BaseURL string
+	HTTP    *httpclient.Config
+}
+
+func NewOSRMClient(cfg *Config) *OSRMClient {
+	if cfg == nil {
+		cfg = &Config{}
+	}
+
+	baseURL := defaultOSRMBaseURL
+	if cfg.BaseURL != "" {
+		baseURL = cfg.BaseURL
+	}
+
+	httpCfg := cfg.HTTP
+	if httpCfg == nil {
+		httpCfg = &httpclient.Config{}
+	}
+
 	return &OSRMClient{
-		client: httpclient.NewHTTPClient(cfg),
-		log:    cfg.Log,
+		client:  httpclient.NewHTTPClient(httpCfg),
+		log:     httpCfg.Log,
+		baseURL: baseURL,
 	}
 }
 
@@ -62,7 +87,7 @@ func (c *OSRMClient) FindFastestRoutes(ctx context.Context, source service.Locat
 	for _, d := range destinations {
 		destinationsStr = append(destinationsStr, d.String())
 	}
-	url := findNearestRoutesURL(sourceStr, destinationsStr)
+	url := c.findNearestRoutesURL(sourceStr, destinationsStr)
 
 	tableResponse := &TableResponse{}
 	err := c.client.Get(ctx, url, tableResponse)
@@ -95,9 +120,9 @@ func (c *OSRMClient) FindFastestRoutes(ctx context.Context, source service.Locat
 	return routes, nil
 }
 
-func findNearestRoutesURL(source string, destinations []string) string {
+func (c *OSRMClient) findNearestRoutesURL(source string, destinations []string) string {
 	destinationsStr := strings.Join(destinations, ";")
-	return fmt.Sprintf("http://router.project-osrm.org/table/v1/driving/%s;%s?sources=0&annotations=duration,distance", source, destinationsStr)
+	return fmt.Sprintf("%s/table/v1/driving/%s;%s?sources=0&annotations=duration,distance", c.baseURL, source, destinationsStr)
 }
 
 func handleOSRMError(code, message string) error {

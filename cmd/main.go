@@ -16,13 +16,20 @@ import (
 )
 
 const (
-	serverPort = ":8000"
+	serverPort         = ":8000"
+	defaultOSRMBaseURL = "http://router.project-osrm.org"
 )
 
 func main() {
 	logger := initLogger()
-	routeService := service.NewRouteService(osrmclient.NewOSRMClient(&httpclient.Config{
-		Log: logger.WithField("context", "osrmclient"),
+
+	osrmBaseURL := envOrDefault("OSRM_BASE_URL", defaultOSRMBaseURL, parseString)
+
+	routeService := service.NewRouteService(osrmclient.NewOSRMClient(&osrmclient.Config{
+		BaseURL: osrmBaseURL,
+		HTTP: &httpclient.Config{
+			Log: logger.WithField("context", "osrmclient"),
+		},
 	}))
 	logger.Info("Creating server...")
 	srv, err := server.NewServer(server.Config{
