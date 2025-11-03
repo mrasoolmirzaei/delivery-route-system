@@ -11,8 +11,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// OSRM Error codes as defined in the API documentation
+const (
+	CodeOk             = "Ok"
+	CodeInvalidUrl     = "InvalidUrl"
+	CodeInvalidService = "InvalidService"
+	CodeInvalidVersion = "InvalidVersion"
+	CodeInvalidOptions = "InvalidOptions"
+	CodeInvalidQuery   = "InvalidQuery"
+	CodeInvalidValue   = "InvalidValue"
+	CodeNoSegment      = "NoSegment"
+	CodeTooBig         = "TooBig"
+)
+
+var (
+	ErrInvalidUrl     = errors.New("OSRM: URL string is invalid")
+	ErrInvalidService = errors.New("OSRM: service name is invalid")
+	ErrInvalidVersion = errors.New("OSRM: version is not found")
+	ErrInvalidOptions = errors.New("OSRM: options are invalid")
+	ErrInvalidQuery   = errors.New("OSRM: query string is syntactically malformed")
+	ErrInvalidValue   = errors.New("OSRM: query parameters are invalid")
+	ErrNoSegment      = errors.New("OSRM: one of the supplied input coordinates could not snap to street segment")
+	ErrTooBig         = errors.New("OSRM: request size violates service specific request size restrictions")
+	ErrUnexpected     = errors.New("OSRM: unexpected table response structure")
+)
+
 type TableResponse struct {
 	Code      string      `json:"code"`
+	Message   string      `json:"message,omitempty"`
 	Durations [][]float64 `json:"durations"`
 	Distances [][]float64 `json:"distances"`
 }
@@ -41,15 +67,19 @@ func (c *OSRMClient) FindFastestRoutes(ctx context.Context, source service.Locat
 	tableResponse := &TableResponse{}
 	err := c.client.Get(ctx, url, tableResponse)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get table response from OSRM: %w", err)
 	}
 
-	if tableResponse.Code != "Ok" {
-		return nil, errors.New(tableResponse.Code)
+	if tableResponse.Code != CodeOk {
+		return nil, handleOSRMError(tableResponse.Code, tableResponse.Message)
 	}
 
 	if isResponseUnexpected(tableResponse, len(destinations)) {
-		return nil, errors.New("unexpected table response")
+		var gotDurations int
+		if len(tableResponse.Durations) > 0 && len(tableResponse.Durations[0]) > 0 {
+			gotDurations = len(tableResponse.Durations[0])
+		}
+		return nil, fmt.Errorf("%w: expected %d destinations but got %d durations", ErrUnexpected, len(destinations)+1, gotDurations)
 	}
 
 	durations, distances := tableResponse.Durations[0], tableResponse.Distances[0]
@@ -70,9 +100,48 @@ func findNearestRoutesURL(source string, destinations []string) string {
 	return fmt.Sprintf("http://router.project-osrm.org/table/v1/driving/%s;%s?sources=0&annotations=duration,distance", source, destinationsStr)
 }
 
+func handleOSRMError(code, message string) error {
+	var baseErr error
+	switch code {
+	case CodeInvalidUrl:
+		baseErr = ErrInvalidUrl
+	case CodeInvalidService:
+		baseErr = ErrInvalidService
+	case CodeInvalidVersion:
+		baseErr = ErrInvalidVersion
+	case CodeInvalidOptions:
+		baseErr = ErrInvalidOptions
+	case CodeInvalidQuery:
+		baseErr = ErrInvalidQuery
+	case CodeInvalidValue:
+		baseErr = ErrInvalidValue
+	case CodeNoSegment:
+		baseErr = ErrNoSegment
+	case CodeTooBig:
+		baseErr = ErrTooBig
+	default:
+		if message != "" {
+			return fmt.Errorf("OSRM error [%s]: %s", code, message)
+		}
+		return fmt.Errorf("OSRM error: %s", code)
+	}
+
+	if message != "" {
+		return fmt.Errorf("%w: %s", baseErr, message)
+	}
+
+	return baseErr
+}
+
 func isResponseUnexpected(tableResponse *TableResponse, totalDestinations int) bool {
-	return (len(tableResponse.Durations) != 1 ||
-		len(tableResponse.Distances) != 1 ||
-		len(tableResponse.Durations[0]) != len(tableResponse.Distances[0]) ||
-		len(tableResponse.Durations[0]) != totalDestinations+1)
+	if len(tableResponse.Durations) != 1 || len(tableResponse.Distances) != 1 {
+		return true
+	}
+	if len(tableResponse.Durations[0]) != len(tableResponse.Distances[0]) {
+		return true
+	}
+	if len(tableResponse.Durations[0]) != totalDestinations+1 {
+		return true
+	}
+	return false
 }
