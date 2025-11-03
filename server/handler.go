@@ -24,8 +24,8 @@ func (s *Server) health() http.HandlerFunc {
 			defer cancel()
 
 			// Test with a simple health check location
-			testSource := service.Location("0,0")
-			testDest := []service.Location{service.Location("0.001,0.001")}
+			testSource := service.Location("13,14")
+			testDest := []service.Location{service.Location("13.1234,12.7890")}
 
 			_, err := s.routeService.GetFastestRoutes(ctx, testSource, testDest)
 			if err != nil {
