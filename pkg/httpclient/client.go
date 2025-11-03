@@ -13,9 +13,12 @@ import (
 )
 
 const (
-	defaultTimeout    = 3 * time.Second
-	defaultMaxRetries = 10
-	defaultRetryDelay = 100 * time.Millisecond
+	defaultTimeout         = 3 * time.Second
+	defaultMaxRetries      = 10
+	defaultRetryDelay      = 100 * time.Millisecond
+	defaultMaxIdleConns    = 100
+	defaultMaxConnsPerHost = 10
+	defaultIdleConnTimeout = 90 * time.Second
 )
 
 type HTTPClient struct {
@@ -42,9 +45,18 @@ func NewHTTPClient(cfg *Config) *HTTPClient {
 		timeout = cfg.Timeout
 	}
 
+	transport := &http.Transport{
+		MaxIdleConns:       defaultMaxIdleConns,
+		MaxConnsPerHost:    defaultMaxConnsPerHost,
+		IdleConnTimeout:    defaultIdleConnTimeout,
+		DisableKeepAlives:  false,
+		DisableCompression: false,
+	}
+
 	client := &HTTPClient{
 		client: &http.Client{
-			Timeout: timeout,
+			Timeout:   timeout,
+			Transport: transport,
 		},
 		log:        cfg.Log,
 		maxRetries: defaultMaxRetries,
@@ -74,11 +86,17 @@ func (c *HTTPClient) Get(ctx context.Context, url string, response any) error {
 	var resp *http.Response
 	err = retry.Do(
 		func() error {
-			resp, err = c.client.Do(req)
-			if err != nil {
-				return err
+			var doErr error
+			resp, doErr = c.client.Do(req)
+			if doErr != nil {
+				return doErr
 			}
+			if resp == nil {
+				return fmt.Errorf("response is nil")
+			}
+
 			if c.shouldRetryOnStatus(resp.StatusCode) {
+				resp.Body.Close()
 				return fmt.Errorf("retryable status code: %d", resp.StatusCode)
 			}
 			return nil
@@ -88,20 +106,34 @@ func (c *HTTPClient) Get(ctx context.Context, url string, response any) error {
 		retry.DelayType(retry.BackOffDelay),
 		retry.LastErrorOnly(true),
 		retry.Context(ctx),
-		retry.OnRetry(func(n uint, err error) {
-			c.log.WithError(err).Errorf("failed to get %s : %s", url, resp.Status)
+		retry.OnRetry(func(n uint, retryErr error) {
+			if resp != nil {
+				c.log.WithError(retryErr).Warnf("retry attempt %d for %s (status: %d)", n+1, url, resp.StatusCode)
+				resp.Body.Close()
+				resp = nil
+			} else {
+				c.log.WithError(retryErr).Warnf("retry attempt %d for %s", n+1, url)
+			}
 		}),
 	)
+
+	if err != nil {
+		return fmt.Errorf("failed to get %s after retries: %w", url, err)
+	}
+
+	if resp == nil {
+		return fmt.Errorf("response is nil after retries for %s", url)
+	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		c.log.Errorf("failed to get %s : %s", url, resp.Status)
-		return err
+		return fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, resp.Status)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(response); err != nil {
-		c.log.WithError(err).Errorf("failed to decode %s", url)
-		return err
+		c.log.WithError(err).Errorf("failed to decode response from %s", url)
+		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return nil

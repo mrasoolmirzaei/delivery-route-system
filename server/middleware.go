@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"runtime/debug"
@@ -44,6 +45,17 @@ func (s *Server) recoveryMiddleware(next http.Handler) http.Handler {
 			}
 		}()
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+// timeoutMiddleware adds a request timeout context to prevent long-running requests
+func (s *Server) timeoutMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), s.requestTimeout)
+		defer cancel()
+
+		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
 }

@@ -133,7 +133,7 @@ func (suite *testSuite) TestGetFastestRoutes_Failures() {
 		{
 			name:           "route service error",
 			url:            "http://localhost:8090/routes?src=12.3456,78.9101&dst=13.1234,12.7890",
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusServiceUnavailable,
 			expectedError:  "failed to get routes",
 			mockFunc: func(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error) {
 				return nil, fmt.Errorf("failed to get routes")
@@ -142,7 +142,7 @@ func (suite *testSuite) TestGetFastestRoutes_Failures() {
 		{
 			name:           "route service timeout error",
 			url:            "http://localhost:8090/routes?src=12.3456,78.9101&dst=13.1234,12.7890",
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusServiceUnavailable,
 			expectedError:  "",
 			mockFunc: func(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error) {
 				return nil, fmt.Errorf("OSRM service timeout")
@@ -151,7 +151,7 @@ func (suite *testSuite) TestGetFastestRoutes_Failures() {
 		{
 			name:           "route service connection error",
 			url:            "http://localhost:8090/routes?src=12.3456,78.9101&dst=13.1234,12.7890",
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusServiceUnavailable,
 			expectedError:  "",
 			mockFunc: func(ctx context.Context, source service.Location, destinations []service.Location) ([]*service.Route, error) {
 				return nil, fmt.Errorf("connection refused")
