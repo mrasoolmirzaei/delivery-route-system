@@ -6,7 +6,7 @@ A delivery route optimization system that finds the fastest routes between a sou
 
 ### Problem Statement
 
-At Ingrid, we're building shipping solutions. One of the problems we face is presenting a list of pickup locations available in a customer's area so that they can have their package delivered to the nearest location in their neighborhood.
+We're building shipping solutions. One of the problems we face is presenting a list of pickup locations available in a customer's area so that they can have their package delivered to the nearest location in their neighborhood.
 
 **The Question**: Which destination is closest to the source and how fast can one get there by car?
 
