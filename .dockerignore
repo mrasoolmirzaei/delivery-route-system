@@ -1,0 +1,60 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+delivery-route-system
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test files
+test/
+*_test.go
+
+# Build artifacts
+build/
+dist/
+bin/
+
+# Logs
+*.log
+
